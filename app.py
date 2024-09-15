@@ -5,6 +5,7 @@ import base64
 from dotenv import load_dotenv
 from langsmith import traceable
 from langsmith.wrappers import wrap_openai
+from prompts import SYSTEM_PROMPT
 
 # Load environment variables
 load_dotenv()
@@ -20,6 +21,9 @@ model_kwargs = {
     "max_tokens": 500
 }
 
+# Configuration setting to enable or disable the system prompt
+ENABLE_SYSTEM_PROMPT = True
+
 client = wrap_openai(openai.AsyncClient(api_key=api_key, base_url=endpoint_url))
 
 @traceable
@@ -27,6 +31,10 @@ client = wrap_openai(openai.AsyncClient(api_key=api_key, base_url=endpoint_url))
 async def on_message(message: cl.Message):
       # Maintain an array of messages in the user session
     message_history = cl.user_session.get("message_history", [])
+
+    if ENABLE_SYSTEM_PROMPT and (not message_history or message_history[0].get("role") != "system"):
+        system_prompt_content = SYSTEM_PROMPT
+        message_history.insert(0, {"role": "system", "content": system_prompt_content})
 
     message_history.append({"role": "user", "content": message.content})
 
